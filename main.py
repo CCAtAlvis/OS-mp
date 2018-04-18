@@ -1,48 +1,51 @@
 #!/usr/bin/python3
+from random import randint
+from tabulate import tabulate
 
 f = open("address.txt", "r")
 TLB = dict()
+TLB_MAX = 16
+
+tlbHits = 0
+tlbMisses = 0
+pageFaults = 0
+
+fifoStack = list()
+
+physicalMemoryStart = 512
+physicalMemoryEnd = 4096
+
+def getPhysicalAddr(offset = 0):
+    return randint(physicalMemoryStart, physicalMemoryEnd) + offset
 
 for line in f:
     valDec = int(line, 16)
-    valHex = hex(valDec)
-    valBin = bin(valDec)
+    valHex = str(hex(valDec))
+    valBin = str(bin(valDec))
 
-    print(str(valHex)+"\t"+str(valDec)+"\t"+str(valBin))
+    # print(valDec, "\t", valBin)
+    logicalAddr = int(valBin[2:len(valBin) - 4], 2)
+    offset = int(valBin[-4:], 2)
 
-    pageAddress = 
+    if logicalAddr in TLB:
+        tlbHits += 1
+    else:
+        tlbMisses += 1
+        if len(TLB) < TLB_MAX:
+            fifoStack.append(logicalAddr)
+            TLB[logicalAddr] = getPhysicalAddr(offset)
+        elif len(fifoStack) != 0 and len(TLB) == TLB_MAX:
+                del TLB[fifoStack.pop()]
+                fifoStack.append(logicalAddr)
+                TLB[logicalAddr] = getPhysicalAddr(offset)
 
-    for i in range(len(TLB)):
-        TLB[i] += 1
-
-        if 
-
-
-# for (i=0; i<pageCount; ++i) {
-#     for (j=0; j<n; j++) {
-#         // check if page exist in cache
-#         if (LRUStack[j][0] == pageSequence[i]) {
-#             hitCount++;
-#             flag = 1;
-#             LRUStack[j][1] = 1;
-#         } else {
-#             LRUStack[j][1]++;
-#         }
-#     }
-
-#     if(!flag) {
-#         // now that the page doesn't exist
-#         // push it in
-#         leastUsed = 0;
-#         for (j=0; j<n; ++j) {
-#             if (LRUStack[j][1] > LRUStack[leastUsed][1])
-#                 leastUsed = j;
-#         }
-
-#         LRUStack[leastUsed][0] = pageSequence[i];
-#         LRUStack[leastUsed][1] = 1;
-#     }
-
-#     flag = 0;
-# }
-# printf("Hit Count in LFU: %d\n", hitCount);
+print("Summary:")
+print("\nPhysical Mem. Range : %d-%d"%(physicalMemoryStart, physicalMemoryEnd))
+print("TLB Length : %d\n"%TLB_MAX)
+print("+------------------------+")
+print("|       TLB Contents     |")
+print("|------------------------|")
+print(tabulate(TLB.items(), headers=['Logical', 'Physical'], tablefmt='orgtbl'))    
+print("+------------------------+")
+print("\nTLB Hits : ", tlbHits)
+print("TLB Misses : ", tlbMisses)
